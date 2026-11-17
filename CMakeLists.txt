@@ -48,6 +48,7 @@ juce_add_plugin(BambuzaDrumLab
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
     COPY_PLUGIN_AFTER_BUILD FALSE
+    VST3_CAN_REPLACE_VST2 FALSE
 )
 
 # Generate JuceHeader.h for the plugin source files.
