@@ -42,7 +42,7 @@ Bambuza Drum Lab is a cross-platform drum-sampling instrument designed to turn a
 
 ## Build status
 
-The repository foundation is being established. A successful plugin build has **not** yet been claimed. See the roadmap for the first compile-and-test milestone.
+The repository foundation and a preliminary JUCE/C++ sampler skeleton are committed. The current skeleton is **not yet build-verified**: sample asset lifetime/state restoration, resampling, voice handling and cross-platform compile validation remain open. See the roadmap for the first compile-and-test milestone.
 
 ## License
 
