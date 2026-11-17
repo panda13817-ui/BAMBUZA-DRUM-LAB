@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(BambuzaDrumLab VERSION 0.1.0 LANGUAGES CXX)
+project(BambuzaDrumLab VERSION 0.1.0 LANGUAGES C CXX)
 
 # Build configuration for the initial JUCE plugin foundation.
 # JUCE is intentionally not vendored yet. Configure JUCE_DIR to a locally
@@ -49,6 +49,9 @@ juce_add_plugin(BambuzaDrumLab
     IS_MIDI_EFFECT FALSE
     COPY_PLUGIN_AFTER_BUILD FALSE
 )
+
+# Generate JuceHeader.h for the plugin source files.
+juce_generate_juce_header(BambuzaDrumLab)
 
 target_sources(BambuzaDrumLab
     PRIVATE
