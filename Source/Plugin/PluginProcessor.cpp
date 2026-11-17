@@ -137,7 +137,8 @@ void BambuzaDrumLabAudioProcessor::loadSampleForPad (int padIndex, const juce::F
     newSample->sourceSampleRate = reader->sampleRate;
 
     auto* published = newSample.get();
-    ownedSamples[static_cast<size_t> (padIndex)] = std::move (newSample);
+    // Keep previous versions alive: active voices may still reference them.
+    ownedSamples[static_cast<size_t> (padIndex)].push_back (std::move (newSample));
     activeSamples[static_cast<size_t> (padIndex)].store (published, std::memory_order_release);
 }
 
