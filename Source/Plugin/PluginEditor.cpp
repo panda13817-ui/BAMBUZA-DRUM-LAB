@@ -8,8 +8,7 @@ BambuzaDrumLabAudioProcessorEditor::BambuzaDrumLabAudioProcessorEditor (
     for (int i = 0; i < BambuzaDrumLabAudioProcessor::padCount; ++i)
     {
         auto& button = padButtons[static_cast<size_t> (i)];
-        button.setButtonText ("PAD " + juce::String (i + 1));
-        button.setClickingTogglesState (true);
+        button.setButtonText (audioProcessor.getPadName (i));
         button.onClick = [this, i]
         {
             selectedPad = i;
@@ -59,7 +58,7 @@ void BambuzaDrumLabAudioProcessorEditor::resized()
 void BambuzaDrumLabAudioProcessorEditor::loadSample()
 {
     auto chooser = std::make_shared<juce::FileChooser> (
-        "Select a WAV sample", juce::File{}, "*.wav");
+        "Select an audio sample", juce::File{}, "*.wav;*.aif;*.aiff;*.flac");
     chooser->launchAsync (juce::FileBrowserComponent::openMode
                           | juce::FileBrowserComponent::canSelectFiles,
         [this, chooser] (const juce::FileChooser& fc)
