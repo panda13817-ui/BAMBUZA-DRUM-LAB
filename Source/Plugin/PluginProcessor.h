@@ -3,7 +3,6 @@
 #include <JuceHeader.h>
 #include <array>
 #include <memory>
-#include <vector>
 
 class BambuzaDrumLabAudioProcessor final : public juce::AudioProcessor
 {
@@ -54,9 +53,13 @@ private:
         bool active = false;
     };
 
-    std::array<std::unique_ptr<PadSample>, padCount> samples;
+    // Sample replacement is prepared off-thread and atomically published.
+    // Old buffers are retained until processor destruction to avoid freeing
+    // memory on the realtime thread. This is a conservative prototype policy.
+    std::array<std::atomic<PadSample*>, padCount> activeSamples {};
+    std::array<std::unique_ptr<PadSample>, padCount> ownedSamples;
     std::array<Voice, 32> voices;
-    double currentSampleRate = 44100.0;
+    juce::AudioFormatManager formatManager;
 
     void triggerPad (int padIndex, float velocity);
     void renderVoices (juce::AudioBuffer<float>& output, int startSample, int numSamples);
