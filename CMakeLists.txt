@@ -30,12 +30,18 @@ else()
         "-DBAMBUZA_FETCH_JUCE=ON. Review JUCE licensing before commercial distribution.")
 endif()
 
+if(APPLE)
+    set(BAMBUZA_PLUGIN_FORMATS VST3 AU Standalone)
+else()
+    set(BAMBUZA_PLUGIN_FORMATS VST3 Standalone)
+endif()
+
 juce_add_plugin(BambuzaDrumLab
     COMPANY_NAME "Bambuza Components"
     BUNDLE_ID "com.bambuza.components.drumlab"
     PLUGIN_MANUFACTURER_CODE Bmbz
     PLUGIN_CODE BdL1
-    FORMATS VST3 AU Standalone
+    FORMATS ${BAMBUZA_PLUGIN_FORMATS}
     PRODUCT_NAME "Bambuza Drum Lab"
     IS_SYNTH TRUE
     NEEDS_MIDI_INPUT TRUE
