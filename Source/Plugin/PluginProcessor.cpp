@@ -1,0 +1,166 @@
+#include "PluginProcessor.h"
+#include "PluginEditor.h"
+
+BambuzaDrumLabAudioProcessor::BambuzaDrumLabAudioProcessor()
+    : AudioProcessor (BusesProperties()
+        .withOutput ("Output", juce::AudioChannelSet::stereo(), true))
+{
+}
+
+void BambuzaDrumLabAudioProcessor::prepareToPlay (double sampleRate, int)
+{
+    currentSampleRate = sampleRate;
+}
+
+void BambuzaDrumLabAudioProcessor::releaseResources()
+{
+    for (auto& voice : voices)
+        voice.active = false;
+}
+
+bool BambuzaDrumLabAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
+{
+    const auto output = layouts.getMainOutputChannelSet();
+    return output == juce::AudioChannelSet::mono()
+        || output == juce::AudioChannelSet::stereo();
+}
+
+void BambuzaDrumLabAudioProcessor::processBlock (
+    juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
+{
+    juce::ScopedNoDenormals noDenormals;
+    buffer.clear();
+
+    int blockCursor = 0;
+    for (const auto metadata : midiMessages)
+    {
+        const auto samplePosition = juce::jlimit (blockCursor, buffer.getNumSamples(),
+                                                  metadata.samplePosition);
+        if (samplePosition > blockCursor)
+            renderVoices (buffer, blockCursor, samplePosition - blockCursor);
+
+        const auto message = metadata.getMessage();
+        if (message.isNoteOn())
+        {
+            // Initial convention: MIDI notes 36–51 map to pads 1–16.
+            const int pad = message.getNoteNumber() - 36;
+            if (juce::isPositiveAndBelow (pad, padCount))
+                triggerPad (pad, message.getFloatVelocity());
+        }
+        else if (message.isAllNotesOff() || message.isAllSoundOff())
+        {
+            for (auto& voice : voices)
+                voice.active = false;
+        }
+        blockCursor = samplePosition;
+    }
+
+    if (blockCursor < buffer.getNumSamples())
+        renderVoices (buffer, blockCursor, buffer.getNumSamples() - blockCursor);
+}
+
+void BambuzaDrumLabAudioProcessor::triggerPad (int padIndex, float velocity)
+{
+    if (! samples[static_cast<size_t> (padIndex)] || samples[static_cast<size_t> (padIndex)]->audio.getNumSamples() == 0)
+        return;
+
+    auto voiceIt = std::find_if (voices.begin(), voices.end(),
+                                 [] (const Voice& voice) { return ! voice.active; });
+    if (voiceIt == voices.end())
+        voiceIt = voices.begin(); // Deterministic basic voice stealing for prototype.
+
+    *voiceIt = Voice { padIndex, 0, juce::jlimit (0.0f, 1.0f, velocity), true };
+}
+
+void BambuzaDrumLabAudioProcessor::renderVoices (
+    juce::AudioBuffer<float>& output, int startSample, int numSamples)
+{
+    for (auto& voice : voices)
+    {
+        if (! voice.active || voice.padIndex < 0)
+            continue;
+
+        const auto& sample = samples[static_cast<size_t> (voice.padIndex)]->audio;
+        const int remaining = sample.getNumSamples() - voice.position;
+        const int count = juce::jmin (numSamples, remaining);
+        if (count <= 0)
+        {
+            voice.active = false;
+            continue;
+        }
+
+        const int outChannels = output.getNumChannels();
+        const int sourceChannels = sample.getNumChannels();
+        for (int channel = 0; channel < outChannels; ++channel)
+        {
+            const int sourceChannel = juce::jmin (channel, sourceChannels - 1);
+            output.addFrom (channel, startSample, sample, sourceChannel,
+                            voice.position, count, voice.gain);
+        }
+
+        voice.position += count;
+        if (voice.position >= sample.getNumSamples())
+            voice.active = false;
+    }
+}
+
+void BambuzaDrumLabAudioProcessor::loadSampleForPad (int padIndex, const juce::File& file)
+{
+    if (! juce::isPositiveAndBelow (padIndex, padCount) || ! file.existsAsFile())
+        return;
+
+    // File decoding and allocation happen on the caller's non-audio thread.
+    std::unique_ptr<juce::AudioFormatReader> reader (
+        juce::AudioFormatManager::getInstance()->createReaderFor (file));
+    if (! reader)
+        return;
+
+    auto newSample = std::make_unique<PadSample>();
+    newSample->audio.setSize (static_cast<int> (reader->numChannels),
+                              static_cast<int> (reader->lengthInSamples));
+    if (! reader->read (&newSample->audio, 0, static_cast<int> (reader->lengthInSamples),
+                        0, true, true))
+        return;
+
+    newSample->name = file.getFileNameWithoutExtension();
+    newSample->sourceSampleRate = reader->sampleRate;
+    samples[static_cast<size_t> (padIndex)] = std::move (newSample);
+}
+
+juce::String BambuzaDrumLabAudioProcessor::getPadName (int padIndex) const
+{
+    if (! juce::isPositiveAndBelow (padIndex, padCount))
+        return {};
+    const auto& sample = samples[static_cast<size_t> (padIndex)];
+    return sample ? sample->name : "PAD " + juce::String (padIndex + 1);
+}
+
+void BambuzaDrumLabAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
+{
+    juce::ValueTree state ("BambuzaDrumLabState");
+    state.setProperty ("schemaVersion", 1, nullptr);
+    for (int i = 0; i < padCount; ++i)
+    {
+        juce::ValueTree pad ("Pad");
+        pad.setProperty ("index", i, nullptr);
+        pad.setProperty ("name", getPadName (i), nullptr);
+        state.appendChild (pad, nullptr);
+    }
+
+    juce::MemoryOutputStream stream (destData, false);
+    state.writeToStream (stream);
+}
+
+void BambuzaDrumLabAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
+{
+    const auto state = juce::ValueTree::readFromData (data, static_cast<size_t> (sizeInBytes));
+    if (! state.isValid() || state.getType() != "BambuzaDrumLabState")
+        return;
+
+    // Sample asset references and full kit restore are implemented in the next milestone.
+}
+
+juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
+{
+    return new BambuzaDrumLabAudioProcessor();
+}
