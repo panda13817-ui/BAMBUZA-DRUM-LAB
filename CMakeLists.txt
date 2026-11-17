@@ -54,6 +54,17 @@ juce_add_plugin(BambuzaDrumLab
 # Generate JuceHeader.h for the plugin source files.
 juce_generate_juce_header(BambuzaDrumLab)
 
+# Apply the VST3 replacement setting to each generated format target.
+# JUCE's VST3 client compiles in the wrapper targets, not only shared code.
+foreach(plugin_target IN ITEMS
+    BambuzaDrumLab_VST3
+    BambuzaDrumLab_AU
+    BambuzaDrumLab_Standalone)
+    if(TARGET ${plugin_target})
+        target_compile_definitions(${plugin_target} PRIVATE JUCE_VST3_CAN_REPLACE_VST2=0)
+    endif()
+endforeach()
+
 target_sources(BambuzaDrumLab
     PRIVATE
         Source/Plugin/PluginProcessor.cpp
