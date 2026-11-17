@@ -57,7 +57,7 @@ private:
     // Old buffers are retained until processor destruction to avoid freeing
     // memory on the realtime thread. This is a conservative prototype policy.
     std::array<std::atomic<PadSample*>, padCount> activeSamples {};
-    std::array<std::unique_ptr<PadSample>, padCount> ownedSamples;
+    std::array<std::vector<std::unique_ptr<PadSample>>, padCount> ownedSamples;
     std::array<Voice, 32> voices;
     juce::AudioFormatManager formatManager;
 
