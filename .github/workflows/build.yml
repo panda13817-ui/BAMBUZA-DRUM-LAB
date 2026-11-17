@@ -9,27 +9,19 @@ permissions:
   contents: read
 
 jobs:
-  build-macos:
-    name: macOS (${{ matrix.arch }})
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: macos-15-intel
-            arch: Intel
-          - os: macos-15
-            arch: Apple-Silicon
-    runs-on: ${{ matrix.os }}
+  build-macos-intel:
+    name: macOS Intel x86_64
+    runs-on: macos-26-intel
     steps:
       - uses: actions/checkout@v4
-      - name: Configure
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBAMBUZA_FETCH_JUCE=ON
+      - name: Configure Intel build
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=x86_64 -DBAMBUZA_FETCH_JUCE=ON
       - name: Build VST3, AU and Standalone
         run: cmake --build build --config Release --parallel 3
-      - name: Upload macOS plugins
+      - name: Upload macOS Intel plugins
         uses: actions/upload-artifact@v4
         with:
-          name: Bambuza-Drum-Lab-macOS-${{ matrix.arch }}
+          name: Bambuza-Drum-Lab-macOS-Intel-x86_64
           path: build/BambuzaDrumLab_artefacts/Release/
           if-no-files-found: error
           retention-days: 30
