@@ -11,6 +11,11 @@ BambuzaDrumLabAudioProcessor::BambuzaDrumLabAudioProcessor()
         sample.store (nullptr, std::memory_order_relaxed);
 }
 
+juce::AudioProcessorEditor* BambuzaDrumLabAudioProcessor::createEditor()
+{
+    return new BambuzaDrumLabAudioProcessorEditor (*this);
+}
+
 void BambuzaDrumLabAudioProcessor::prepareToPlay (double, int)
 {
 }
