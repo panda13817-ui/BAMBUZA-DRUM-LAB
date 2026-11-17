@@ -1,0 +1,44 @@
+name: Build Bambuza Drum Lab
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-macos:
+    name: macOS Intel and Apple Silicon
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBAMBUZA_FETCH_JUCE=ON
+      - name: Build VST3, AU and Standalone
+        run: cmake --build build --config Release --parallel 3
+      - name: Upload macOS plugins
+        uses: actions/upload-artifact@v4
+        with:
+          name: Bambuza-Drum-Lab-macOS
+          path: build/BambuzaDrumLab_artefacts/Release/
+          if-no-files-found: error
+          retention-days: 30
+
+  build-windows:
+    name: Windows x64
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S . -B build -A x64 -DBAMBUZA_FETCH_JUCE=ON
+      - name: Build VST3 and Standalone
+        run: cmake --build build --config Release --parallel 3
+      - name: Upload Windows plugins
+        uses: actions/upload-artifact@v4
+        with:
+          name: Bambuza-Drum-Lab-Windows-x64
+          path: build/BambuzaDrumLab_artefacts/Release/
+          if-no-files-found: error
+          retention-days: 30
