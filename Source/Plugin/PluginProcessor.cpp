@@ -170,7 +170,7 @@ void BambuzaDrumLabAudioProcessor::setStateInformation (const void* data, int si
     if (data == nullptr || sizeInBytes <= 0)
         return;
     const auto state = juce::ValueTree::readFromData (data, static_cast<size_t> (sizeInBytes));
-    if (! state.isValid() || state.getType() != "BambuzaDrumLabState")
+    if (! state.isValid() || ! state.hasType (juce::Identifier ("BambuzaDrumLabState")))
         return;
     // Full asset-path restore is intentionally deferred until the kit manifest
     // and asset-copy policy are implemented together.
